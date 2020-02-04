@@ -15,5 +15,6 @@ namespace NRES_SubscriptionApp
     {
         public string reqID { get; set; }
         public bool Isselected { get; set; }
+        public string invID { get; set; }
     }
 }

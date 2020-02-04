@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Configuration;
-using Microsoft.SharePoint.Client;
 using System.Net;
-using Newtonsoft.Json.Linq;
+using System.Threading.Tasks;
+using Microsoft.SharePoint.Client;
 using NRES_SubscriptionApp.Services;
 
 namespace NRES_SubscriptionApp
@@ -15,18 +10,20 @@ namespace NRES_SubscriptionApp
     {
         public static string WebApplicationURL = string.Empty;
         public static string ListTitle = string.Empty;
-        public static string AccountName = string.Empty;
-        public static string Password = string.Empty;
+        public static NetworkCredential networkCredential = null;
+
+        // credentials - we used into clientlogfolder cs file.
+        public const string AccountName = @"rsaparco";
+        public const string Password = @"NRES";
+
 
         static void Main(string[] args)
         {
 
             WebApplicationURL = System.Configuration.ConfigurationManager.AppSettings["ApplicationURL"];
             ListTitle = System.Configuration.ConfigurationManager.AppSettings["ListTitle"];
-            AccountName = System.Configuration.ConfigurationManager.AppSettings["ServiceAccountName"];
-            Password = System.Configuration.ConfigurationManager.AppSettings["Password"];
-
-            StartSubscription(WebApplicationURL, ListTitle);
+            networkCredential = new NetworkCredential(AccountName, Password, "NRES");
+            StartSubscription(WebApplicationURL, ListTitle).Wait();
         }
 
         /// <summary>
@@ -34,22 +31,36 @@ namespace NRES_SubscriptionApp
         /// </summary>
         /// <param name="webApplicationURL">The web application url</param>
         /// <param name="listTitle">The list title</param>
-        public static void StartSubscription(string webApplicationURL, string listTitle)
+        public static async Task StartSubscription(string webApplicationURL, string listTitle)
         {
             using (ClientContext context = new ClientContext(webApplicationURL))
             {
-                context.Credentials = new NetworkCredential(AccountName, Password);
-                List list = context.Web.Lists.GetByTitle(listTitle);
-                CamlQuery camlQuery = new CamlQuery();
-                camlQuery.ViewXml = "<View><Query><Where><Eq><FieldRef Name='IsSubscribeDone' /><Value Type='Boolean'>0</Value></Eq></Where></Query><RowLimit>100</RowLimit></View>";
+                try
+                {
+                    context.Credentials = new NetworkCredential(AccountName, Password, "NRES");
+                    List list = context.Web.Lists.GetByTitle(listTitle);
+                    CamlQuery camlQuery = new CamlQuery();
+                    camlQuery.ViewXml = "<View><Query><Where><Eq><FieldRef Name='IsSubscribeDone' /><Value Type='Boolean'>0</Value></Eq></Where></Query><RowLimit>100</RowLimit></View>";
 
-                ListItemCollection listItems = list.GetItems(camlQuery);
-                context.Load(listItems, items => items.Include(
-                item => item["ID"], item => item["Title"],
-                item => item["Items"], item => item["DocumentID"]));
+                    ListItemCollection listItems = list.GetItems(camlQuery);
+                    context.Load(listItems, items => items.Include(
+                    item => item["ID"], item => item["Title"], item => item["InvID"],
+                    item => item["IsSubscribeDone"], item => item["Items"], item => item["DocumentID"],
+                    item => item["Jurisdiction"], item => item["DocumentAuthor"], item => item["Notes"]));
 
-                context.ExecuteQuery();
-                ReadSubscriptionItemCollection(context, listItems);
+                    context.ExecuteQuery();
+                    await ReadSubscriptionItemCollection(context, listItems, webApplicationURL);
+                }
+                catch(Exception ex)
+                {
+                    Errorlogs.Log(context, new ErrorLogItem
+                    {
+                        ErrorMessage = ex.Message,
+                        MethodName = "Program.StartSubscription",
+                        StackTrace = ex.StackTrace,
+                        SubscriptionID = 0
+                    });
+                }
             }
         }
 
@@ -58,16 +69,49 @@ namespace NRES_SubscriptionApp
         /// </summary>
         /// <param name="context"></param>
         /// <param name="listItems"></param>
-        public static void ReadSubscriptionItemCollection(ClientContext context, ListItemCollection listItems)
+        public static async Task ReadSubscriptionItemCollection(ClientContext context, ListItemCollection listItems, string webApplicationURL)
         {
             foreach (var listItem in listItems)
             {
-                string Itemcoll = listItem["Items"]?.ToString();
-                var reqItemcoll = Newtonsoft.Json.JsonConvert.DeserializeObject<ReqItemcollection>(Itemcoll); // parse as array
+                try
+                {
+                    int subscriptionID = Convert.ToInt32(listItem["ID"]);
+                    string Itemcoll = listItem["Items"]?.ToString();
+                    string inventoryID = listItem["InvID"]?.ToString();
+                    int DocumentID = Convert.ToInt32(listItem["DocumentID"]?.ToString());
+                    var reqItemcoll = Newtonsoft.Json.JsonConvert.DeserializeObject<ReqItemcollection>(Itemcoll); // parse as array
 
-                Requirement.RequirementInventoryUpdate(context, reqItemcoll);
-                
+                    SubscriptionItem subscriptionItem = new SubscriptionItem
+                    {
+                        ID = subscriptionID,
+                        InvID = inventoryID,
+                        DocumentAuthor = listItem["DocumentAuthor"]?.ToString(),
+                        DocumentID = DocumentID,
+                        Notes = listItem["Notes"]?.ToString(),
+                        WebApplicationURL = webApplicationURL,
+                        IsSuccess = 0,
+                        Jurisdiction = listItem["Jurisdiction"]?.ToString()
+                    };
+
+                    Requirement.RequirementInventoryUpdate(context, reqItemcoll, subscriptionItem, networkCredential);
+                    DocumentItem.DocumentInventoryUpdate(context, DocumentID, subscriptionItem, networkCredential);
+                    await ClientLogFolder.ClientLogFolderCreation(context, reqItemcoll, subscriptionItem);
+
+                    listItem["IsSubscribeDone"] = subscriptionItem.IsSuccess;
+                    listItem.Update();
+                    context.ExecuteQuery();
+                }
+                catch (Exception ex)
+                {
+                    Errorlogs.Log(context, new ErrorLogItem
+                    {
+                        ErrorMessage = ex.Message,
+                        MethodName = "Program.ReadSubscriptionItemCollection",
+                        StackTrace = ex.StackTrace,
+                        SubscriptionID = Convert.ToInt32(listItem["ID"])
+                    });
+                }
             }
-        }
+        }   
     }
 }
