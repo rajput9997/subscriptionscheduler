@@ -13,10 +13,6 @@ namespace NRES_SubscriptionApp.Services
     {
         public const int noOfAttempts = 3;
 
-        // credentials - we used into program cs file.
-        public const string AccountName = @"rsaparco";
-        public const string Password = @"NRES";
-
         public static bool IsFolderCreated { get; set; }
 
         public static bool CreateInventoryIDFolder(ClientContext rootcontext, List olistClientLog, string inventoryID)
@@ -88,8 +84,7 @@ namespace NRES_SubscriptionApp.Services
         public static async Task ClientLogFolderCreation(ClientContext parentContext, ReqItemcollection reqItemcollection, SubscriptionItem subscriptionItem)
         {
             string LogApplicationURL = System.Configuration.ConfigurationManager.AppSettings["LogApplicationURL"];
-
-            NetworkCredential networkCredential = new NetworkCredential(AccountName, Password, "NRES");
+            NetworkCredential networkCredential = new NetworkCredential(CommonVariables.AccountName, CommonVariables.Password, "NRES");
             using (ClientContext rootcontext = new ClientContext(LogApplicationURL))
             {
                 rootcontext.Credentials = networkCredential;

@@ -27,12 +27,20 @@ namespace NRES_SubscriptionApp.Services
                 ListItem oListItem = olistDocs.GetItemById(documentID);
                 string inventorycoll = GetDocumentInventory(context, oListItem);
 
-                if (!inventorycoll.Contains("-" + subscriptionItem.InvID + "-"))
+                if (!string.IsNullOrWhiteSpace(inventorycoll))
                 {
-                    inventorycoll += "-" + subscriptionItem.InvID + "-";
-                }
+                    if (!inventorycoll.Contains("-" + subscriptionItem.InvID + "-"))
+                    {
+                        inventorycoll += "-" + subscriptionItem.InvID + "-";
+                    }
 
-                oListItem["inventory"] = inventorycoll;
+                    oListItem["inventory"] = inventorycoll;
+                }
+                else
+                {
+                    oListItem["inventory"] = "-" + subscriptionItem.InvID + "-";
+                }
+                oListItem["_ModerationStatus"] = 0;
                 oListItem.Update();
                 context.Load(oListItem);
                 context.ExecuteQuery();

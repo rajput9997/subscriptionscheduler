@@ -42,6 +42,7 @@ namespace NRES_SubscriptionApp.Services
                     {
                         ListItem oListItem = olistReq.GetItemById(reqItemcollection.reqitems[i].reqID);
                         oListItem["inventory"] = reqItemcollection.reqitems[i].invID;
+                        oListItem["_ModerationStatus"] = 0; // Approved:0,Denied:1,Pending:2,Draft:3,Shceduled:4
                         oListItem.Update();
                         context.Load(oListItem);
                     }
