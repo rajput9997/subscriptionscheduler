@@ -69,7 +69,7 @@ namespace NRES_SubscriptionApp.Services
                                 listURL = siteUrl + "/lists/Requirements",
                                 itemRESTURL = siteUrl + "/_api/web/lists/GetByTitle('" + CommonVariables.RequirementListTitle + "')/items(" + reqId + ")",
                                 itemURL = siteUrl + "/SitePages/ViewRequirement.aspx?rid=" + reqId + "&listName=" + CommonVariables.DocumentListTitle + "&did=" + docId + "&isdlg=1&isReq=false"
-                        };
+                            };
                         }
                     }
                 }
@@ -107,7 +107,7 @@ namespace NRES_SubscriptionApp.Services
                 var count = reqItemcollection.reqitems.Count;
                 var maxChunkSize = 100;
                 var shouldRun = true;
-                var start = 0; 
+                var start = 0;
                 var chunkSize = count < maxChunkSize ? count : maxChunkSize;
                 var end = start + chunkSize < count ? start + chunkSize : count;
                 rootcontext.RequestTimeout = -1;
@@ -139,6 +139,8 @@ namespace NRES_SubscriptionApp.Services
                         listItem["Note"] = reqItemcollection.reqitems[i].Isselected ? "" : subscriptionItem.Notes;
                         listItem["Jurisdiction"] = subscriptionItem.Jurisdiction;
                         listItem["Author0"] = subscriptionItem.DocumentAuthor;
+                        listItem["Author"] = subscriptionItem.CreatedBy;
+                        listItem["Editor"] = subscriptionItem.CreatedBy;
 
                         listItem.Update();
                         rootcontext.Load(listItem);

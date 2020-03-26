@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.SharePoint.Client;
 
 namespace NRES_SubscriptionApp
 {
-   public class SubscriptionItem
+    public class SubscriptionItem
     {
         public int ID { get; set; }
         public int DocumentID { get; set; }
@@ -19,5 +15,7 @@ namespace NRES_SubscriptionApp
         public string WebApplicationURL { get; set; }
 
         public int IsSuccess { get; set; }
+
+        public FieldUserValue CreatedBy { get; set; }
     }
 }

@@ -14,7 +14,6 @@ namespace NRES_SubscriptionApp
 
         static void Main(string[] args)
         {
-
             WebApplicationURL = System.Configuration.ConfigurationManager.AppSettings["ApplicationURL"];
             ListTitle = System.Configuration.ConfigurationManager.AppSettings["ListTitle"];
             networkCredential = new NetworkCredential(CommonVariables.AccountName, CommonVariables.Password, "NRES");
@@ -41,7 +40,8 @@ namespace NRES_SubscriptionApp
                     context.Load(listItems, items => items.Include(
                     item => item["ID"], item => item["Title"], item => item["InvID"],
                     item => item["IsSubscribeDone"], item => item["Items"], item => item["DocumentID"],
-                    item => item["Jurisdiction"], item => item["DocumentAuthor"], item => item["Notes"], item => item["SiteUrl"]));
+                    item => item["Jurisdiction"], item => item["DocumentAuthor"], item => item["Notes"],
+                    item => item["Author"], item => item["SiteUrl"]));
 
                     context.ExecuteQuery();
                     await ReadSubscriptionItemCollection(context, listItems, webApplicationURL);
@@ -76,6 +76,7 @@ namespace NRES_SubscriptionApp
                     string inventoryID = listItem["InvID"]?.ToString();
                     int DocumentID = Convert.ToInt32(listItem["DocumentID"]?.ToString());
                     targetSiteCollectionUrl = listItem["SiteUrl"]?.ToString();
+                    FieldUserValue createdBy = (FieldUserValue)listItem["Author"];
                     var reqItemcoll = Newtonsoft.Json.JsonConvert.DeserializeObject<ReqItemcollection>(Itemcoll); // parse as array
 
                     SubscriptionItem subscriptionItem = new SubscriptionItem
@@ -87,7 +88,8 @@ namespace NRES_SubscriptionApp
                         Notes = listItem["Notes"]?.ToString(),
                         WebApplicationURL = webApplicationURL,
                         IsSuccess = 0,
-                        Jurisdiction = listItem["Jurisdiction"]?.ToString()
+                        Jurisdiction = listItem["Jurisdiction"]?.ToString(),
+                        CreatedBy = createdBy
                     };
 
                     using (ClientContext targetContext = new ClientContext(targetSiteCollectionUrl))
