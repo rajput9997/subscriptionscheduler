@@ -35,6 +35,7 @@ namespace NRES_SubscriptionApp
                     List list = context.Web.Lists.GetByTitle(listTitle);
                     CamlQuery camlQuery = new CamlQuery();
                     camlQuery.ViewXml = "<View><Query><Where><Eq><FieldRef Name='IsSubscribeDone' /><Value Type='Boolean'>0</Value></Eq></Where></Query><RowLimit>100</RowLimit></View>";
+                    //camlQuery.ViewXml = "<View><Query><Where><Eq><FieldRef Name='ID' /><Value Type='Counter'>68</Value></Eq></Where></Query><RowLimit>100</RowLimit></View>";
 
                     ListItemCollection listItems = list.GetItems(camlQuery);
                     context.Load(listItems, items => items.Include(
@@ -97,7 +98,16 @@ namespace NRES_SubscriptionApp
                         targetContext.Credentials = new NetworkCredential(CommonVariables.AccountName, CommonVariables.Password, "NRES");
                         subscriptionItem.WebApplicationURL = targetSiteCollectionUrl;
                         Requirement.RequirementInventoryUpdate(targetContext, reqItemcoll, subscriptionItem, networkCredential);
-                        DocumentItem.DocumentInventoryUpdate(targetContext, DocumentID, subscriptionItem, networkCredential);
+                        var checkRemoveDoc = reqItemcoll.reqitems.FindAll(i => i.Isselected == false);
+                        if (checkRemoveDoc.Count > 0)
+                        {
+                            DocumentItem.DocumentInventoryUpdate(targetContext, DocumentID, subscriptionItem, networkCredential, true);
+                        }
+                        else
+                        {
+                            DocumentItem.DocumentInventoryUpdate(targetContext, DocumentID, subscriptionItem, networkCredential, false);
+                        }
+                        
                         await ClientLogFolder.ClientLogFolderCreation(targetContext, reqItemcoll, subscriptionItem);
                     }
 

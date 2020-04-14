@@ -19,7 +19,7 @@ namespace NRES_SubscriptionApp.Services
             return oListItem["inventory"]?.ToString();
         }
 
-        public static void DocumentInventoryUpdate(ClientContext context, int documentID, SubscriptionItem subscriptionItem, NetworkCredential networkCredential)
+        public static void DocumentInventoryUpdate(ClientContext context, int documentID, SubscriptionItem subscriptionItem, NetworkCredential networkCredential, bool isRemoveCall)
         {
             try
             {
@@ -44,6 +44,11 @@ namespace NRES_SubscriptionApp.Services
                 oListItem.Update();
                 context.Load(oListItem);
                 context.ExecuteQuery();
+                if (isRemoveCall)
+                {
+                    RemoveInventoryIdsDocuments(context, oListItem, documentID, olistDocs, "-" + subscriptionItem.InvID + "-", subscriptionItem);
+                }
+
                 subscriptionItem.IsSuccess = 1;
             }
             catch (Exception ex)
@@ -52,6 +57,40 @@ namespace NRES_SubscriptionApp.Services
                 {
                     ErrorMessage = ex.Message,
                     MethodName = "DocumentItem.DocumentInventoryUpdate",
+                    StackTrace = ex.StackTrace,
+                    SubscriptionID = subscriptionItem.ID
+                });
+            }
+        }
+
+        private static void RemoveInventoryIdsDocuments(ClientContext context, ListItem oDocListItem, int documentID, List olistDocs, string invID, SubscriptionItem subscriptionItem)
+        {
+            try
+            {
+                List olistReq = context.Web.Lists.GetByTitle(CommonVariables.RequirementListTitle);
+                CamlQuery camlQuery = new CamlQuery();
+                camlQuery.ViewXml = "<View><Query><Where><And><Eq><FieldRef Name='ParentId' LookupId='TRUE'/><Value Type='Lookup'>" + documentID + "</Value></Eq><Contains><FieldRef Name='inventory' /><Value Type='Text'>" + invID + "</Value></Contains></And></Where></Query><RowLimit>10000</RowLimit></View>";
+
+                ListItemCollection oReqlistItems = olistReq.GetItems(camlQuery);
+                context.Load(oReqlistItems, items => items.Include(
+                item => item["ID"]));
+
+                context.ExecuteQuery();
+                if (oReqlistItems.Count == 0)
+                {
+                    oDocListItem["inventory"] = oDocListItem["inventory"]?.ToString().Replace(invID, "");
+                    oDocListItem["_ModerationStatus"] = 0;
+                    oDocListItem.Update();
+                    context.Load(oDocListItem);
+                    context.ExecuteQuery();
+                }
+            }
+            catch(Exception ex)
+            {
+                Errorlogs.Log(context, new ErrorLogItem
+                {
+                    ErrorMessage = ex.Message,
+                    MethodName = "DocumentItem.RemoveInventoryIdsDocuments",
                     StackTrace = ex.StackTrace,
                     SubscriptionID = subscriptionItem.ID
                 });
