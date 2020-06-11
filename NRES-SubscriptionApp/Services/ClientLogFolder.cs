@@ -141,6 +141,7 @@ namespace NRES_SubscriptionApp.Services
                         listItem["Author0"] = subscriptionItem.DocumentAuthor;
                         listItem["Author"] = subscriptionItem.CreatedBy;
                         listItem["Editor"] = subscriptionItem.CreatedBy;
+                        listItem["Documentname"] = subscriptionItem.DocumentTitle;
 
                         listItem.Update();
                         rootcontext.Load(listItem);

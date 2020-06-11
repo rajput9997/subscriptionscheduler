@@ -26,6 +26,7 @@ namespace NRES_SubscriptionApp.Services
                 List olistDocs = context.Web.Lists.GetByTitle(CommonVariables.DocumentListTitle);
                 ListItem oListItem = olistDocs.GetItemById(documentID);
                 string inventorycoll = GetDocumentInventory(context, oListItem);
+                subscriptionItem.DocumentTitle = Convert.ToString(oListItem["Title"]);
 
                 if (!string.IsNullOrWhiteSpace(inventorycoll))
                 {
